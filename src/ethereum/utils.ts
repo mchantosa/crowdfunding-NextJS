@@ -1,30 +1,38 @@
 import Web3 from "web3";
 import crowdfundingABI from "./crowdfundingABI";
-require("dotenv").config();
+import { formatInTimeZone } from "date-fns-tz";
+import { RegisteredSubscription } from "web3/lib/commonjs/eth.exports";
 
+//Web3 Utilities
 export const getWeb3 = () => {
   if (window.ethereum) {
     const web3 = new Web3(window.ethereum);
-    // Request account access if needed
     window.ethereum
       .request({ method: "eth_requestAccounts" })
       .then(() => {
         console.log("MetaMask is connected");
       })
-      .catch((err) => {
-        console.error("User denied account access", err);
+      .catch((error) => {
+        console.error("User denied account access", error);
       });
     return web3;
   } else {
     console.error("MetaMask is not installed");
-    return null;
+    return undefined;
   }
 };
 
-export const getContract = (web3, address) => {
-  //console.log(address);
-  const contract = new web3.eth.Contract(crowdfundingABI, address);
-  return contract;
+export const getContract = (
+  web3: Web3<RegisteredSubscription>,
+  contractAddress: string
+) => {
+  if (!web3) {
+    console.error("Web3 is not initialized");
+    return;
+  } else {
+    const contract = new web3.eth.Contract(crowdfundingABI, contractAddress);
+    return contract;
+  }
 };
 
 export const convertWeiToEther = (
@@ -54,3 +62,25 @@ export const convertEtherToDollars = (
   const dollars = (parseFloat(ether) * conversionRate).toFixed(2);
   return dollars;
 };
+
+//Time Utilities
+
+export function formatDate(date: Date | undefined) {
+  if (!date) {
+    return "";
+  }
+
+  return `${formatInTimeZone(
+    date,
+    "America/New_York",
+    "dd-MMM-yyyy HH:mm"
+  )} EST`;
+}
+
+export function getDateFromSeconds(seconds: number | bigint) {
+  const secondsAsNumber =
+    typeof seconds === "bigint" ? Number(seconds) : seconds;
+  const milliseconds = secondsAsNumber * 1000;
+  const date = new Date(milliseconds);
+  return date;
+}

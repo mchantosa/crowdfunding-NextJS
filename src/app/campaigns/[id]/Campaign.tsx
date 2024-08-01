@@ -1,13 +1,8 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  getWeb3,
-  getContract,
-  convertWeiToEther,
-  convertWeiToDollars,
-} from "../../../ethereum/utils";
-import ContributeInput from "./ContributeInput";
-
+import { useParams } from "next/navigation";
+//components
+import CampaignInteractionSection from "./CampaignInteractionSection";
 // Material Web Components imports
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -21,10 +16,17 @@ import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import TableFooter from "@mui/material/TableFooter";
 import theme from "../../../theme/theme";
-//import { format } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
-import { useParams } from "next/navigation";
 import Typography from "@mui/material/Typography";
+//utils
+import {
+  getWeb3,
+  getContract,
+  convertWeiToEther,
+  convertWeiToDollars,
+  formatDate,
+  getDateFromSeconds,
+} from "../../../ethereum/utils";
+import Web3 from "web3";
 
 const ONGOING_STATE = 0;
 const FAILED_STATE = 1;
@@ -37,73 +39,32 @@ printableStates.set(FAILED_STATE, "Failed");
 printableStates.set(SUCCEEDED_STATE, "Succeeded");
 printableStates.set(PAID_OUT_STATE, "Paid Out");
 
-const formatDate = (date) => {
-  if (!date) {
-    return "";
-  }
-
-  return `${formatInTimeZone(
-    date,
-    "America/New_York",
-    "dd-MMM-yyyy HH:mm"
-  )} EST`;
-};
-
-function getDateFromSeconds(seconds) {
-  const secondsAsNumber =
-    typeof seconds === "bigint" ? Number(seconds) : seconds;
-  const milliseconds = secondsAsNumber * 1000;
-  const date = new Date(milliseconds);
-  return date;
-}
-
 export default function Campaign() {
-  const web3 = useMemo(() => getWeb3(), []);
-  const [currentAccount, setCurrentAccount] = useState<string>("");
+  const contractAddress = useParams().id;
+  const [refreshCampaign, setRefreshCampaign] = useState<boolean>(false);
+  const [userAccount, setUserAccount] = useState<string>("");
   const [contractInfo, setContractInfo] = useState<any>(undefined);
-  const [etherPrice, setEtherPrice] = useState<number>(0);
+  const [etherPrice, setEtherPrice] = useState<number | undefined>(undefined);
 
-  const address = useParams().id;
+  const web3 = useMemo(() => getWeb3(), []);
 
   async function connectWallet() {
-    console.log("currentAccount before:", currentAccount);
     try {
-      if (!web3) {
-        console.error("Web3 not initialized");
-        return;
-      }
+      if (!web3) return; //Web3 not initialized
       const accounts: string[] = await web3.eth.getAccounts();
-      console.log("Fetched accounts:", accounts);
-      if (accounts.length > 0) {
-        setCurrentAccount(accounts[0]);
-      } else {
-        console.error("No accounts found");
-      }
+      if (accounts.length > 0) setUserAccount(accounts[0]);
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
   }
 
-  async function getCurrentConnectedAccount() {
-    const accounts: string[] = await web3.eth.getAccounts();
-    setCurrentAccount(accounts[0]);
-  }
-
   useEffect(() => {
-    getCurrentConnectedAccount();
-  }, []);
-
-  useEffect(() => {
-    if (currentAccount !== undefined) {
-      console.log("currentAccount after:", currentAccount);
+    async function setConnectedUserAccount() {
+      const accounts: string[] = await web3.eth.getAccounts();
+      setUserAccount(accounts[0]);
     }
-  }, [currentAccount]);
-
-  useEffect(() => {
-    if (contractInfo !== undefined) {
-      console.log("contractInfo after:", contractInfo);
-    }
-  }, [contractInfo]);
+    setConnectedUserAccount();
+  }, [web3]);
 
   useEffect(() => {
     const fetchEtherPrice = async () => {
@@ -112,62 +73,87 @@ export default function Campaign() {
           "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
         );
         const data = await response.json();
-        setEtherPrice(data.ethereum.usd);
+        const etherPrice = data.ethereum.usd;
+        setEtherPrice(etherPrice);
+
+        // Store the fetched Ether price and the current timestamp in local storage
+        localStorage.setItem("etherPrice", etherPrice.toString());
+        localStorage.setItem("etherPriceTimestamp", Date.now().toString());
       } catch (error) {
         console.error("Error fetching Ether price:", error);
       }
     };
 
-    fetchEtherPrice();
+    const storedEtherPrice = localStorage.getItem("etherPrice");
+    const storedTimestamp = localStorage.getItem("etherPriceTimestamp");
+
+    if (storedEtherPrice && storedTimestamp) {
+      const timestamp = parseInt(storedTimestamp, 10);
+      const now = Date.now();
+
+      if (now - timestamp < 60000) {
+        // Use the cached Ether price
+        setEtherPrice(parseFloat(storedEtherPrice));
+        console.log("Using cached ether price");
+      } else {
+        // Cache is stale, fetch new price
+        fetchEtherPrice();
+        console.log("Cache is stale, fetching new ether price");
+      }
+    } else {
+      // No cache, fetch new price
+      fetchEtherPrice();
+      console.log("No cache, initializing and fetching ether price");
+    }
   }, []);
 
   useEffect(() => {
-    console.log("Fetched Ether price:", etherPrice);
-  }, [etherPrice]);
+    async function getCampaign(contractAddress) {
+      if (!userAccount || !web3) return;
 
-  async function getCampaign(address) {
-    if (!currentAccount) return;
+      const contract = getContract(web3, contractAddress);
+      try {
+        const name: string = await contract.methods.name().call();
+        const targetAmount: bigint = await contract.methods
+          .targetAmount()
+          .call();
+        const totalCollected: bigint = await contract.methods
+          .totalCollected()
+          .call();
+        const beneficiary: string = await contract.methods.beneficiary().call();
+        const deadlineSeconds: bigint = await contract.methods
+          .fundingDeadline()
+          .call();
+        const contributedAmount: bigint = await contract.methods
+          .amounts(userAccount)
+          .call();
+        const state = Number(await contract.methods.state().call());
+        const deadlineDate = getDateFromSeconds(deadlineSeconds);
 
-    const contract = getContract(web3, address);
-    try {
-      const name = await contract.methods.name().call();
-      const targetAmount = await contract.methods.targetAmount().call();
-      const totalCollected = await contract.methods.totalCollected().call();
-      const beneficiary = await contract.methods.beneficiary().call();
-      const deadlineSeconds = await contract.methods.fundingDeadline().call();
-      const contributedAmount = await contract.methods
-        .amounts(currentAccount)
-        .call();
-      const state = Number(await contract.methods.state().call());
-      const deadlineDate = getDateFromSeconds(deadlineSeconds);
-
-      setContractInfo({
-        name: name,
-        targetAmount: targetAmount,
-        totalCollected: totalCollected,
-        deadline: deadlineDate,
-        campaignFinished: deadlineDate < new Date(),
-        isBeneficiary:
-          currentAccount.toLowerCase() === beneficiary.toLowerCase(),
-        contributedAmount: contributedAmount,
-        state,
-      });
-    } catch (error) {
-      console.error("Error fetching contract info:", error);
+        setContractInfo({
+          name: name,
+          targetAmount: targetAmount,
+          totalCollected: totalCollected,
+          beneficiary: beneficiary,
+          deadline: deadlineDate,
+          contributedAmount: contributedAmount,
+          state,
+          campaignFinished: deadlineDate < new Date(),
+        });
+      } catch (error) {
+        console.error("Error fetching contract info:", error);
+      }
     }
-  }
-
-  useEffect(() => {
-    getCampaign(address);
-  }, [web3, address, currentAccount]);
+    getCampaign(contractAddress);
+  }, [web3, contractAddress, userAccount, refreshCampaign]);
 
   window.ethereum.on("accountsChanged", function (accounts: any) {
     if (accounts) {
-      setCurrentAccount(accounts[0]);
+      setUserAccount(accounts[0]);
     }
   });
 
-  if (!currentAccount) {
+  if (!userAccount) {
     return (
       <>
         <Alert severity="info">
@@ -219,39 +205,44 @@ export default function Campaign() {
           </TableHead>
           <TableBody>
             <TableRow>
-              <TableCell>Campaign Name</TableCell>
+              <TableCell>
+                Campaign Name {refreshCampaign ? "Refreshed" : "Not Refreshed"}
+              </TableCell>
               <TableCell>{contractInfo.name}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Campaign Target Amount</TableCell>
               <TableCell>
-                {convertWeiToEther(contractInfo.targetAmount, web3)} ETH (
-                <Typography component="span" className="text-green-500">
-                  $
-                  {convertWeiToDollars(
-                    contractInfo.targetAmount,
-                    etherPrice,
-                    web3
-                  )}
-                </Typography>
-                )
+                {convertWeiToEther(contractInfo.targetAmount, web3)} ETH
+                {etherPrice ? (
+                  <Typography component="span" className="text-green-500 ml-2">
+                    ($
+                    {convertWeiToDollars(
+                      contractInfo.targetAmount,
+                      etherPrice,
+                      web3
+                    )}
+                    )
+                  </Typography>
+                ) : null}
               </TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Total Funds Collected</TableCell>
               <TableCell>
-                {convertWeiToEther(contractInfo.totalCollected, web3)} ETH (
-                <Typography component="span" className="text-green-500">
-                  $
-                  {convertWeiToDollars(
-                    contractInfo.totalCollected,
-                    etherPrice,
-                    web3
-                  )}
-                </Typography>
-                )
+                {convertWeiToEther(contractInfo.totalCollected, web3)} ETH
+                {etherPrice ? (
+                  <Typography component="span" className="text-green-500 ml-2">
+                    ($
+                    {convertWeiToDollars(
+                      contractInfo.totalCollected,
+                      etherPrice,
+                      web3
+                    )}
+                    )
+                  </Typography>
+                ) : null}
               </TableCell>
-              <TableCell>{contractInfo.contributedAmount}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Campaign State</TableCell>
@@ -264,23 +255,33 @@ export default function Campaign() {
             <TableRow>
               <TableCell>Summary of Your Total Contributions</TableCell>
               <TableCell>
-                {convertWeiToEther(contractInfo.contributedAmount, web3)} ETH (
-                <Typography component="span" className="text-green-500">
-                  $
-                  {convertWeiToDollars(
-                    contractInfo.contributedAmount,
-                    etherPrice,
-                    web3
-                  )}
-                </Typography>
-                )
+                {convertWeiToEther(contractInfo.contributedAmount, web3)} ETH
+                {etherPrice ? (
+                  <Typography component="span" className="text-green-500 ml-2">
+                    ($
+                    {convertWeiToDollars(
+                      contractInfo.contributedAmount,
+                      etherPrice,
+                      web3
+                    )}
+                    )
+                  </Typography>
+                ) : null}
               </TableCell>
             </TableRow>
           </TableBody>
           <TableFooter>
             <TableRow>
               <TableCell colSpan={2}>
-                {campaignInteractionSection(contractInfo, etherPrice)}
+                <CampaignInteractionSection
+                  contractInfo={contractInfo}
+                  contractAddress={contractAddress}
+                  userAccount={userAccount}
+                  etherPrice={etherPrice}
+                  refreshCampaign={refreshCampaign}
+                  setRefreshCampaign={setRefreshCampaign}
+                  setContractInfo={setContractInfo}
+                />
               </TableCell>
             </TableRow>
           </TableFooter>
@@ -288,29 +289,4 @@ export default function Campaign() {
       </TableContainer>
     </>
   );
-}
-
-function campaignInteractionSection(contractInfo: any, etherPrice: number) {
-  if (contractInfo.state === ONGOING_STATE) {
-    return (
-      <ContributeInput
-        campaignFinished={contractInfo.campaignFinished}
-        etherPrice={etherPrice}
-      />
-    );
-  } else if (contractInfo.state === SUCCEEDED_STATE) {
-    return (
-      <ContributeInput
-        campaignFinished={contractInfo.isBeneficiary}
-        etherPrice={etherPrice}
-      />
-    );
-  } else if (contractInfo.state === FAILED_STATE) {
-    return (
-      <ContributeInput
-        campaignFinished={contractInfo.contributedByCurrentAccount}
-        etherPrice={etherPrice}
-      />
-    );
-  }
 }
