@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 //components
 import CampaignInteractionSection from "./CampaignInteractionSection";
+import AvailableActions from "./AvailableActions";
 // Material Web Components imports
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -384,30 +385,4 @@ export default function Campaign() {
       </TableContainer>
     </>
   );
-}
-
-function AvailableActions(props) {
-  const { contractInfo } = props;
-  if (contractInfo.state === PAID_OUT_STATE) {
-    return <p>None</p>;
-  } else if (contractInfo.state === ONGOING_STATE) {
-    if (contractInfo.pastDeadline) {
-      return <p className="text-red-500">Finish Campaign (anyone)</p>;
-    } else {
-      return (
-        <>
-          <p>Contribute (anyone)</p>
-          <p>Cancel (owner)</p>
-        </>
-      );
-    }
-  } else if (contractInfo.state === FAILED_STATE) {
-    if (contractInfo.ballance > 0) {
-      return <p>Withdraw (contributors with net ballance)</p>;
-    } else {
-      return <p>None, all funds withdrawn</p>;
-    }
-  } else {
-    return <p>Collect(beneficiary)</p>;
-  }
 }

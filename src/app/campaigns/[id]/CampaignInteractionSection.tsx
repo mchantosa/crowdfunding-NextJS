@@ -18,8 +18,6 @@ export default function campaignInteractionSection(props) {
     setContractInfo,
   } = props;
 
-  console.log("contract.state: ", contract.state);
-  console.log("STATES.FAILED_STATE: ", STATES.FAILED_STATE);
   if (contractInfo.state === STATES.PAID_OUT_STATE) {
     return <>PAID OUT STATE PENDING</>;
   } else if (contractInfo.state === STATES.FAILED_STATE) {
