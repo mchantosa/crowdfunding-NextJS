@@ -41,31 +41,41 @@ printableStates.set(PAID_OUT_STATE, "Paid Out");
 
 export default function Campaign() {
   const contractAddress = useParams().id;
-  const [refreshCampaign, setRefreshCampaign] = useState<boolean>(false);
+  const [web3, setWeb3] = useState<Web3 | undefined>(undefined);
   const [userAccount, setUserAccount] = useState<string>("");
+  const [contract, setContract] = useState<any>(undefined);
   const [contractInfo, setContractInfo] = useState<any>(undefined);
   const [etherPrice, setEtherPrice] = useState<number | undefined>(undefined);
 
-  const web3 = useMemo(() => getWeb3(), []);
-
-  async function connectWallet() {
-    try {
-      if (!web3) return; //Web3 not initialized
-      const accounts: string[] = await web3.eth.getAccounts();
-      if (accounts.length > 0) setUserAccount(accounts[0]);
-    } catch (error) {
-      console.error("Error fetching accounts:", error);
-    }
-  }
-
+  //get web3
   useEffect(() => {
-    async function setConnectedUserAccount() {
+    (async () => {
+      const _web3 = await getWeb3();
+      if (!_web3) return;
+      setWeb3(_web3);
+    })();
+  }, []);
+
+  //get user account
+  useEffect(() => {
+    if (!web3) return;
+    (async () => {
       const accounts: string[] = await web3.eth.getAccounts();
       setUserAccount(accounts[0]);
-    }
-    setConnectedUserAccount();
+    })();
   }, [web3]);
 
+  //get contract
+  useEffect(() => {
+    if (!web3) return;
+    (async () => {
+      const _contract = getContract(web3, contractAddress);
+      if (!_contract) return;
+      setContract(_contract);
+    })();
+  }, [web3, contractAddress]);
+
+  //get ether price (cached or fresh)
   useEffect(() => {
     const fetchEtherPrice = async () => {
       try {
@@ -101,57 +111,96 @@ export default function Campaign() {
         console.log("Cache is stale, fetching new ether price");
       }
     } else {
-      // No cache, fetch new price
       fetchEtherPrice();
       console.log("No cache, initializing and fetching ether price");
     }
   }, []);
 
+  async function loadCampaignData(contractAddress) {
+    if (!userAccount || !web3) return;
+
+    try {
+      const name: string = await contract.methods.name().call();
+      const targetAmount: bigint = await contract.methods.targetAmount().call();
+      const totalCollected: bigint = await contract.methods
+        .totalCollected()
+        .call();
+      const beneficiary: string = await contract.methods.beneficiary().call();
+      const deadlineSeconds: bigint = await contract.methods
+        .fundingDeadline()
+        .call();
+      const contributedAmount: bigint = await contract.methods
+        .amounts(userAccount)
+        .call();
+      const state = Number(await contract.methods.state().call());
+      const deadlineDate = getDateFromSeconds(deadlineSeconds);
+      const pastDeadline = deadlineDate < new Date();
+
+      console.log({
+        name,
+        targetAmount,
+        totalCollected,
+        beneficiary,
+        deadlineDate,
+        contributedAmount,
+        state,
+        pastDeadline,
+      });
+
+      setContractInfo({
+        name: name,
+        targetAmount: targetAmount,
+        totalCollected: totalCollected,
+        beneficiary: beneficiary,
+        deadline: deadlineDate,
+        contributedAmount: contributedAmount,
+        state,
+        pastDeadline: deadlineDate < new Date(),
+      });
+    } catch (error) {
+      console.error("Error fetching contract info:", error);
+    }
+  }
+
+  //get contract info
   useEffect(() => {
-    async function getCampaign(contractAddress) {
-      if (!userAccount || !web3) return;
+    (async () => {
+      await loadCampaignData(contractAddress);
+    })();
+  }, [web3, contractAddress, userAccount]);
 
-      const contract = getContract(web3, contractAddress);
-      try {
-        const name: string = await contract.methods.name().call();
-        const targetAmount: bigint = await contract.methods
-          .targetAmount()
-          .call();
-        const totalCollected: bigint = await contract.methods
-          .totalCollected()
-          .call();
-        const beneficiary: string = await contract.methods.beneficiary().call();
-        const deadlineSeconds: bigint = await contract.methods
-          .fundingDeadline()
-          .call();
-        const contributedAmount: bigint = await contract.methods
-          .amounts(userAccount)
-          .call();
-        const state = Number(await contract.methods.state().call());
-        const deadlineDate = getDateFromSeconds(deadlineSeconds);
-
-        setContractInfo({
-          name: name,
-          targetAmount: targetAmount,
-          totalCollected: totalCollected,
-          beneficiary: beneficiary,
-          deadline: deadlineDate,
-          contributedAmount: contributedAmount,
-          state,
-          campaignFinished: deadlineDate < new Date(),
-        });
-      } catch (error) {
-        console.error("Error fetching contract info:", error);
+  useEffect(() => {
+    const handleAccountsChanged = (accounts) => {
+      if (accounts.length > 0) {
+        setUserAccount(accounts[0]);
+      } else {
+        setUserAccount(undefined); // Handle the case where no account is connected
       }
-    }
-    getCampaign(contractAddress);
-  }, [web3, contractAddress, userAccount, refreshCampaign]);
+    };
 
-  window.ethereum.on("accountsChanged", function (accounts: any) {
-    if (accounts) {
-      setUserAccount(accounts[0]);
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
     }
-  });
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener(
+          "accountsChanged",
+          handleAccountsChanged
+        );
+      }
+    };
+  }, []);
+
+  async function connectWallet() {
+    try {
+      if (!web3) return; //Web3 not initialized
+      const accounts: string[] = await web3.eth.getAccounts();
+      if (accounts.length > 0) setUserAccount(accounts[0]);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  }
 
   if (!userAccount) {
     return (
@@ -205,9 +254,7 @@ export default function Campaign() {
           </TableHead>
           <TableBody>
             <TableRow>
-              <TableCell>
-                Campaign Name {refreshCampaign ? "Refreshed" : "Not Refreshed"}
-              </TableCell>
+              <TableCell>Campaign Name</TableCell>
               <TableCell>{contractInfo.name}</TableCell>
             </TableRow>
             <TableRow>
@@ -245,12 +292,18 @@ export default function Campaign() {
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>Campaign State</TableCell>
+              <TableCell>Campaign Status</TableCell>
               <TableCell>{printableStates.get(contractInfo.state)}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Deadline</TableCell>
               <TableCell>{formatDate(contractInfo.deadline)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Available Actions</TableCell>
+              <TableCell>
+                <AvailableActions contractInfo={contractInfo} />
+              </TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Summary of Your Total Contributions</TableCell>
@@ -272,14 +325,56 @@ export default function Campaign() {
           </TableBody>
           <TableFooter>
             <TableRow>
+              <TableCell
+                colSpan={2}
+                sx={{
+                  padding: theme.spacing(2), // Padding for better spacing
+                  borderTop: `3px solid ${theme.palette.divider}`, // Border for distinction
+                }}
+              >
+                <Typography
+                  variant="body2" // Use body2 for smaller font size
+                  component="span"
+                  sx={{
+                    fontWeight: "bold",
+                    // color: theme.palette.primary.main,
+                    marginRight: theme.spacing(1), // Space between the two spans
+                  }}
+                >
+                  Connected Account:
+                </Typography>
+                <Typography
+                  variant="body2" // Use body2 for smaller font size
+                  component="span"
+                >
+                  {userAccount}
+                </Typography>
+                <Typography
+                  component="p"
+                  className="text-green-500"
+                  sx={{
+                    fontWeight: "bold",
+                    //color: theme.palette.secondary.main,
+                    marginRight: theme.spacing(1), // Space between the two spans
+                  }}
+                >
+                  {/* <p> Beneficiary: {contractInfo.beneficiary}</p>
+                  <p>User Account: {userAccount}</p> */}
+                  {contractInfo.beneficiary.toLowerCase() ===
+                    userAccount.toLowerCase() && " (owner)"}
+                </Typography>
+              </TableCell>
+            </TableRow>
+            <TableRow>
               <TableCell colSpan={2}>
                 <CampaignInteractionSection
+                  contract={contract}
+                  web3={web3}
                   contractInfo={contractInfo}
                   contractAddress={contractAddress}
                   userAccount={userAccount}
                   etherPrice={etherPrice}
-                  refreshCampaign={refreshCampaign}
-                  setRefreshCampaign={setRefreshCampaign}
+                  loadCampaignData={loadCampaignData}
                   setContractInfo={setContractInfo}
                 />
               </TableCell>
@@ -289,4 +384,30 @@ export default function Campaign() {
       </TableContainer>
     </>
   );
+}
+
+function AvailableActions(props) {
+  const { contractInfo } = props;
+  if (contractInfo.state === PAID_OUT_STATE) {
+    return <p>None</p>;
+  } else if (contractInfo.state === ONGOING_STATE) {
+    if (contractInfo.pastDeadline) {
+      return <p className="text-red-500">Finish Campaign (anyone)</p>;
+    } else {
+      return (
+        <>
+          <p>Contribute (anyone)</p>
+          <p>Cancel (owner)</p>
+        </>
+      );
+    }
+  } else if (contractInfo.state === FAILED_STATE) {
+    if (contractInfo.ballance > 0) {
+      return <p>Withdraw (contributors with net ballance)</p>;
+    } else {
+      return <p>None, all funds withdrawn</p>;
+    }
+  } else {
+    return <p>Collect(beneficiary)</p>;
+  }
 }

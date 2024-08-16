@@ -3,19 +3,28 @@ import crowdfundingABI from "./crowdfundingABI";
 import { formatInTimeZone } from "date-fns-tz";
 import { RegisteredSubscription } from "web3/lib/commonjs/eth.exports";
 
+//Constants
+export const STATES = {
+  ONGOING_STATE: 0,
+  FAILED_STATE: 1,
+  SUCCEEDED_STATE: 2,
+  PAID_OUT_STATE: 3,
+};
+
 //Web3 Utilities
-export const getWeb3 = () => {
+export const getWeb3 = async () => {
   if (window.ethereum) {
-    const web3 = new Web3(window.ethereum);
-    window.ethereum
-      .request({ method: "eth_requestAccounts" })
-      .then(() => {
-        console.log("MetaMask is connected");
-      })
-      .catch((error) => {
-        console.error("User denied account access", error);
-      });
-    return web3;
+    try {
+      // Create a new Web3 instance using MetaMask's provider
+      const web3 = new Web3(window.ethereum);
+      // Request access to the user's MetaMask accounts
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      console.log("MetaMask is connected");
+      return web3;
+    } catch (error) {
+      console.error("User denied account access", error);
+      return undefined;
+    }
   } else {
     console.error("MetaMask is not installed");
     return undefined;
@@ -24,14 +33,19 @@ export const getWeb3 = () => {
 
 export const getContract = (
   web3: Web3<RegisteredSubscription>,
-  contractAddress: string
+  contractAddress: string | string[]
 ) => {
   if (!web3) {
     console.error("Web3 is not initialized");
     return;
   } else {
-    const contract = new web3.eth.Contract(crowdfundingABI, contractAddress);
-    return contract;
+    //string
+    if (typeof contractAddress === "string") {
+      const contract = new web3.eth.Contract(crowdfundingABI, contractAddress);
+      return contract;
+    } else {
+      return undefined;
+    }
   }
 };
 
