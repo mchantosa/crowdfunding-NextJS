@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 //components
 import CampaignInteractionSection from "./CampaignInteractionSection";
 import AvailableActions from "./AvailableActions";
+import StateLabel from "./StateLabel";
 // Material Web Components imports
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -28,17 +29,6 @@ import {
   getDateFromSeconds,
 } from "../../../ethereum/utils";
 import Web3 from "web3";
-
-const ONGOING_STATE = 0;
-const FAILED_STATE = 1;
-const SUCCEEDED_STATE = 2;
-const PAID_OUT_STATE = 3;
-
-const printableStates = new Map();
-printableStates.set(ONGOING_STATE, "Ongoing");
-printableStates.set(FAILED_STATE, "Failed");
-printableStates.set(SUCCEEDED_STATE, "Succeeded");
-printableStates.set(PAID_OUT_STATE, "Paid Out");
 
 export default function Campaign() {
   const contractAddress = useParams().id;
@@ -294,7 +284,9 @@ export default function Campaign() {
             </TableRow>
             <TableRow>
               <TableCell>Campaign Status</TableCell>
-              <TableCell>{printableStates.get(contractInfo.state)}</TableCell>
+              <TableCell>
+                <StateLabel contractInfo={contractInfo} />
+              </TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Deadline</TableCell>
@@ -303,7 +295,10 @@ export default function Campaign() {
             <TableRow>
               <TableCell>Available Actions</TableCell>
               <TableCell>
-                <AvailableActions contractInfo={contractInfo} />
+                <AvailableActions
+                  contractInfo={contractInfo}
+                  userAccount={userAccount}
+                />
               </TableCell>
             </TableRow>
             <TableRow>

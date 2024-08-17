@@ -12,38 +12,50 @@ export default function ContributeInput(props) {
     console.log("Begin contribute: " + contributionAmount);
     const amount = web3.utils.toWei(contributionAmount, "ether");
 
-    const gasEstimate = await web3.eth.estimateGas({
-      value: amount,
-      from: userAccount,
-      to: contractAddress,
-    });
+    try {
+      // Step 1: Get the current nonce for the account
+      const nonce = await web3.eth.getTransactionCount(userAccount, "pending");
+      console.log("Using nonce: ", nonce);
 
-    console.log("Gas estimate: ", gasEstimate);
-    console.log(amount, userAccount, contractAddress);
-
-    await web3.eth
-      .sendTransaction({
+      // Estimate gas for the transaction
+      const gasEstimate = await web3.eth.estimateGas({
         value: amount,
         from: userAccount,
         to: contractAddress,
-        gas: gasEstimate,
-      })
-      .once("transactionHash", (hash) => {
-        console.log("Transaction hash received: ", hash);
-      })
-      .once("receipt", (receipt) => {
-        console.log("Transaction receipt received: ", receipt);
-      })
-      .on("confirmation", (confNumber, receipt, latestBlockHash) => {
-        console.log("Transaction confirmed: ", confNumber);
-      })
-      .on("error", (error) => {
-        console.log("Transaction error: ", error);
       });
-    setContributionAmount("");
-    await loadCampaignData(contractAddress);
-  }
 
+      console.log("Gas estimate: ", gasEstimate);
+      console.log(amount, userAccount, contractAddress);
+
+      // Step 2: Send the transaction with the correct nonce
+      await web3.eth
+        .sendTransaction({
+          value: amount,
+          from: userAccount,
+          to: contractAddress,
+          gas: gasEstimate,
+          nonce: nonce, // Use the retrieved nonce
+        })
+        .once("transactionHash", (hash) => {
+          console.log("Transaction hash received: ", hash);
+        })
+        .once("receipt", (receipt) => {
+          console.log("Transaction receipt received: ", receipt);
+        })
+        .on("confirmation", (confNumber, receipt, latestBlockHash) => {
+          console.log("Transaction confirmed: ", confNumber);
+        })
+        .on("error", (error) => {
+          console.log("Transaction error: ", error);
+        });
+
+      // Reset contribution amount and reload campaign data
+      setContributionAmount("");
+      await loadCampaignData(contractAddress);
+    } catch (error) {
+      console.error("Error during contribution:", error);
+    }
+  }
   const isValidContribution =
     contributionAmount !== "" && !isNaN(parseFloat(contributionAmount));
 

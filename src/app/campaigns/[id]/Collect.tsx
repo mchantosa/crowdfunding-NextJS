@@ -1,26 +1,22 @@
 import { Button } from "@mui/material";
-
-export default function FinishCampaign(props) {
+export default function Collect(props) {
   const { loadCampaignData, contractAddress, contract, userAccount } = props;
   return (
     <Button
       variant="contained"
       color="primary"
       onClick={async () => {
-        console.log("Finish campaign");
-
+        console.log("Collect");
         try {
-          await contract.methods
-            .finishedCrowdfunding()
-            .send({ from: userAccount });
+          await contract.methods.collect().send({ from: userAccount });
           await loadCampaignData(contractAddress);
-          console.log("Campaign finished successfully");
+          console.log("Collect successful");
         } catch (error) {
-          console.error("Error finishing campaign:", error);
+          console.error("Error collecting:", error);
         }
       }}
     >
-      Finish Campaign
+      Collect
     </Button>
   );
 }

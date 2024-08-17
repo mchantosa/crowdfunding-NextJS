@@ -4,6 +4,7 @@ import Contribute from "./Contribute";
 import CancelCampaign from "./CancelCampaign";
 import Withdraw from "./Withdraw";
 import FinishCampaign from "./FinishCampaign";
+import Collect from "./Collect";
 import { STATES } from "../../../ethereum/utils";
 
 export default function campaignInteractionSection(props) {
@@ -19,7 +20,7 @@ export default function campaignInteractionSection(props) {
   } = props;
 
   if (contractInfo.state === STATES.PAID_OUT_STATE) {
-    return <>PAID OUT STATE PENDING</>;
+    return <>CAMPAIGN PAID OUT, NO FURTHER ACTIONS AVAILABLE</>;
   } else if (contractInfo.state === STATES.FAILED_STATE) {
     return (
       <Withdraw
@@ -34,8 +35,8 @@ export default function campaignInteractionSection(props) {
   } else if (contractInfo.state === STATES.SUCCEEDED_STATE) {
     return (
       <Collect
-        contractInfo={contractInfo}
-        setContractInfo={setContractInfo}
+        loadCampaignData={loadCampaignData}
+        contractAddress={contractAddress}
         contract={contract}
         userAccount={userAccount}
       />
@@ -65,41 +66,12 @@ export default function campaignInteractionSection(props) {
     } else {
       return (
         <FinishCampaign
-          contractInfo={contractInfo}
-          setContractInfo={setContractInfo}
+          loadCampaignData={loadCampaignData}
+          contractAddress={contractAddress}
           contract={contract}
           userAccount={userAccount}
         />
       );
     }
   }
-}
-
-function Collect(props) {
-  const { contractInfo, setContractInfo, contract, userAccount } = props;
-  return (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={async () => {
-        console.log("Collect");
-        try {
-          // Attempt to finish the campaign
-          await contract.methods.collect().send({ from: userAccount });
-          //If successful, update the contract information
-          setContractInfo({
-            ...contractInfo,
-            state: SUCCEEDED_STATE,
-          });
-          console.log("Collect successful");
-        } catch (error) {
-          // Handle any errors that occur during the transaction
-          console.error("Error collecting:", error);
-        }
-      }}
-    >
-      {" "}
-      Collect{" "}
-    </Button>
-  );
 }

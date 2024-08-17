@@ -10,8 +10,11 @@ export default function Withdraw(props) {
     contract,
     userAccount,
   } = props;
+  if (contractInfo.totalCollected === BigInt(0)) {
+    return <p>WITHDRAWALS COMPLETED, NO FURTHER ACTIONS AVAILABLE</p>;
+  }
   if (contractInfo.contributedAmount === BigInt(0)) {
-    return <p>No funds to withdraw</p>;
+    return <p>NO FUNDS TO WITHDRAW</p>;
   } else {
     const contributedAmount = convertWeiToEther(
       contractInfo.contributedAmount,
