@@ -1,7 +1,6 @@
-import { CircularProgress, useTheme, Box, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
-export default function Loading({ children }: { children: React.ReactNode }) {
-  const theme = useTheme();
+export default function Message({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <Box
@@ -25,7 +24,6 @@ export default function Loading({ children }: { children: React.ReactNode }) {
           {children}
         </Typography>
         <br />
-        <CircularProgress />
       </Box>
     </div>
   );

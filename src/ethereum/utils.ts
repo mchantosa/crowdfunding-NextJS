@@ -1,5 +1,5 @@
 import Web3 from "web3";
-import crowdfundingABI from "./crowdfundingABI";
+import { crowdfundingABI, crowdfundingBytecode } from "./crowdfundingABI";
 import { formatInTimeZone } from "date-fns-tz";
 import { RegisteredSubscription } from "web3/lib/commonjs/eth.exports";
 
@@ -47,6 +47,58 @@ export const getContract = (
       return undefined;
     }
   }
+};
+
+export const deployContract = async (
+  web3,
+  account,
+  args,
+  setContractAddress,
+  setLoading,
+  setContractCreated
+) => {
+  const libraryAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+  // Replace the placeholder in the bytecode with the actual library address
+  const linkedBytecode = crowdfundingBytecode.replace(
+    /__\$[a-zA-Z0-9]{34}\$__/g,
+    libraryAddress.slice(2)
+  );
+
+  const contract = new web3.eth.Contract(crowdfundingABI);
+  console.log("arguments: ", args);
+
+  contract
+    .deploy({
+      data: linkedBytecode,
+      arguments: args,
+    })
+    .send({
+      from: account,
+      gas: 1500000,
+      maxFeePerGas: web3.utils.toWei("800", "gwei"), // Set max fee per gas higher
+    })
+    .on("error", (error) => {
+      console.error("Error deploying contract:", error);
+    })
+    .on("transactionHash", (transactionHash) => {
+      console.log("Transaction Hash:", transactionHash);
+    })
+    .on("receipt", (receipt) => {
+      setContractAddress(receipt.contractAddress);
+      setLoading(false);
+      setContractCreated(true);
+      console.log("Contract Address:", receipt.contractAddress); // Contains the new contract address
+    })
+    .then((newContractInstance) => {
+      console.log(
+        "Deployed Contract Instance:",
+        newContractInstance.options.address
+      );
+    })
+    .catch((error) => {
+      console.error("Deployment Error:", error);
+    });
 };
 
 export const convertWeiToEther = (
