@@ -1,5 +1,5 @@
 import { Button } from "@mui/material";
-import { STATES } from "../../../ethereum/utils";
+import { STATES } from "../../../utils/web3/web3";
 
 export default function CancelCampaign(props) {
   const { loadCampaignData, contractAddress, contract, userAccount } = props;

@@ -2,13 +2,11 @@
 import { useState, useEffect } from "react";
 import { Box, Button, TextField } from "@mui/material";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { deployContract } from "../../ethereum/utils";
-import { getWeb3 } from "../../ethereum/utils";
+import { deployContract } from "../../utils/web3/web3";
+import { getWeb3 } from "../../utils/web3/web3";
 import Web3 from "web3";
 import Loading from "../components/Loading";
 import Message from "../components/Message";
-import { CircularProgress, useTheme, Typography } from "@mui/material";
 import theme from "../../theme/theme";
 
 export default function Page() {
@@ -51,7 +49,8 @@ export default function Page() {
       [name, amount, duration, beneficiaryAddress],
       setContractAddress,
       setLoading,
-      setContractCreated
+      setContractCreated,
+      confirmationEmail
     );
   };
   return (
@@ -121,28 +120,24 @@ export default function Page() {
       </Box>
       {loading && (
         <Loading>
-          <p>
-            Your campaign is being deployed, a confirmation email with the
-            campaign address will be sent to{" "}
-            <span style={{ color: theme.palette.primary.main }}>
-              {confirmationEmail}
-            </span>
-          </p>
+          Your campaign is being deployed, a confirmation email with the
+          campaign address will be sent to{" "}
+          <span style={{ color: theme.palette.primary.main }}>
+            {confirmationEmail}
+          </span>
         </Loading>
       )}
       {contractCreated && (
         <Message>
-          <p>
-            Your campaign has been deployed to the address{" "}
-            <span style={{ color: theme.palette.primary.main }}>
-              {contractAddress}
-            </span>
-            , a confirmation email with the campaign address was sent to{" "}
-            <span style={{ color: theme.palette.primary.main }}>
-              {confirmationEmail}
-            </span>
-            . Please save this address for your records.
-          </p>
+          Your campaign has been deployed to the address{" "}
+          <span style={{ color: theme.palette.primary.main }}>
+            {contractAddress}
+          </span>
+          , a confirmation email with the campaign address was sent to{" "}
+          <span style={{ color: theme.palette.primary.main }}>
+            {confirmationEmail}
+          </span>
+          . Please save this address for your records.
           <br />
           <Button
             variant="contained"

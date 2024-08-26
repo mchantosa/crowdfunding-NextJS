@@ -1,4 +1,4 @@
-import { STATES } from "../../../ethereum/utils";
+import { STATES } from "../../../utils/web3/web3";
 import { Typography } from "@mui/material";
 import theme from "../../../theme/theme";
 const printableStates = new Map();

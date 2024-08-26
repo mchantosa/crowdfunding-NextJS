@@ -1,5 +1,5 @@
 import { Button } from "@mui/material";
-import { convertWeiToEther } from "../../../ethereum/utils";
+import { convertWeiToEther } from "../../../utils/web3/web3";
 import Typography from "@mui/material/Typography";
 export default function Withdraw(props) {
   const {

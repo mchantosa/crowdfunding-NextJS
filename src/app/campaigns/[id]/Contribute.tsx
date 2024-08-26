@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { convertEtherToDollars } from "../../../ethereum/utils";
+import { convertEtherToDollars } from "../../../utils/web3/web3";
 export default function ContributeInput(props) {
   const [contributionAmount, setContributionAmount] = useState<string>("");
   const { loadCampaignData, contractAddress, userAccount, etherPrice, web3 } =

@@ -5,7 +5,7 @@ import CancelCampaign from "./CancelCampaign";
 import Withdraw from "./Withdraw";
 import FinishCampaign from "./FinishCampaign";
 import Collect from "./Collect";
-import { STATES } from "../../../ethereum/utils";
+import { STATES } from "../../../utils/web3/web3";
 
 export default function campaignInteractionSection(props) {
   const {

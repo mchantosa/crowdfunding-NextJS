@@ -25,9 +25,8 @@ import {
   getContract,
   convertWeiToEther,
   convertWeiToDollars,
-  formatDate,
-  getDateFromSeconds,
-} from "../../../ethereum/utils";
+} from "../../../utils/web3/web3";
+import { formatDate, getDateFromSeconds } from "../../../utils/time";
 import Web3 from "web3";
 
 export default function Campaign() {
