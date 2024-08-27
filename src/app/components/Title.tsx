@@ -21,7 +21,8 @@ export default function Title({ children }: { children: React.ReactNode }) {
           padding: "10px",
           //border: `2px solid #003366`,
           //transform: "rotate(-2deg)",
-          marginY: 4,
+          marginTop: 4,
+          marginBottom: { xs: 2, md: 4 }, //4,
           marginX: 2,
         }}
       >

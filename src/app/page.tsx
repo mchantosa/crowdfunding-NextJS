@@ -4,52 +4,17 @@ import Title from "./components/Title";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import MediaCard from "./components/MediaCard";
-import { Grid } from "@mui/material";
-import Link from "next/link";
+import Subtitle from "./components/Subtitle";
 
 export default function Page() {
   const theme = useTheme();
   return (
     <>
       <Title>Welcome to Crowdfund</Title>
-      <Box
-        sx={{
-          //xsmarginTop: 1,
-          paddingY: "12px",
-          paddingX: "24px",
-          backgroundColor: "#f5f5f5", // Light gray background for contrast
-          borderLeft: `4px solid #003366`, // Accent border in Midnight Blue
-          borderRadius: "4px",
-          boxShadow: "2px 2px 6px rgba(0, 0, 0, 0.1)",
-          marginY: 2,
-        }}
-      >
-        <Typography
-          variant="body1"
-          sx={{
-            color: "#333", // Dark text color for readability
-            fontFamily: "monospace",
-            textAlign: "center",
-            fontSize: {
-              xs: "1rem", // Font size for extra-small screens
-              sm: "1rem", // Font size for small screens
-              md: "1.25rem", // Font size for medium screens
-              lg: "1.5rem", // Font size for large screens
-              xl: "1.5rem", // Font size for extra-large screens
-            },
-            lineHeight: {
-              xs: "1.2", // Line height for extra-small screens
-              sm: "1.4", // Line height for small screens
-              md: "1.6", // Line height for medium screens
-              lg: "1.8", // Line height for large screens
-              xl: "2", // Line height for extra-large screens
-            },
-          }}
-        >
-          Use this application to create and interface with a crowdfunding smart
-          contract
-        </Typography>
-      </Box>
+      <Subtitle>
+        Use this application to create and interact with an Ethereum
+        crowdfunding campaign
+      </Subtitle>
       <Box
         sx={{
           paddingY: "12px",
