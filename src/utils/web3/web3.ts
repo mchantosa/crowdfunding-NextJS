@@ -143,7 +143,7 @@ export const deployContract = async (
     // Send the email with the contract address
     console.log("send email...");
     debugger;
-    const response = await fetch("/api/send", {
+    const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
