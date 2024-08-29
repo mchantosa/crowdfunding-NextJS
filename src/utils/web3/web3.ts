@@ -3,6 +3,19 @@ import { crowdfundingABI, crowdfundingBytecode } from "./crowdfundingABI";
 import { RegisteredSubscription } from "web3/lib/commonjs/eth.exports";
 
 //Constants
+const NETWORK_ID_TO_NAME = {
+  1: "mainnet", // Ethereum Mainnet
+  3: "ropsten", // Ropsten Testnet
+  4: "rinkeby", // Rinkeby Testnet
+  5: "goerli", // Goerli Testnet
+  42: "kovan", // Kovan Testnet
+  11155111: "sepolia", // Sepolia Testnet
+  31337: "localhost", // Localhost
+};
+
+const SEPOLIA_UTILS_ADDRESS = "0xD30C1cFE568D63027ADE9D2CE143D1E22d396BDa";
+const LOCALHOST_UTILS_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
 export const STATES = {
   ONGOING_STATE: 0,
   FAILED_STATE: 1,
@@ -10,7 +23,6 @@ export const STATES = {
   PAID_OUT_STATE: 3,
 };
 
-//Web3 Utilities
 export const getWeb3 = async () => {
   if (window.ethereum) {
     try {
@@ -48,58 +60,6 @@ export const getContract = (
   }
 };
 
-// export const deployContract = async (
-//   web3,
-//   account,
-//   args,
-//   setContractAddress,
-//   setLoading,
-//   setContractCreated
-// ) => {
-//   const libraryAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-
-//   // Replace the placeholder in the bytecode with the actual library address
-//   const linkedBytecode = crowdfundingBytecode.replace(
-//     /__\$[a-zA-Z0-9]{34}\$__/g,
-//     libraryAddress.slice(2)
-//   );
-
-//   const contract = new web3.eth.Contract(crowdfundingABI);
-//   console.log("arguments: ", args);
-
-//   contract
-//     .deploy({
-//       data: linkedBytecode,
-//       arguments: args,
-//     })
-//     .send({
-//       from: account,
-//       gas: 1500000,
-//       maxFeePerGas: web3.utils.toWei("800", "gwei"), // Set max fee per gas higher
-//     })
-//     .on("error", (error) => {
-//       console.error("Error deploying contract:", error);
-//     })
-//     .on("transactionHash", (transactionHash) => {
-//       console.log("Transaction Hash:", transactionHash);
-//     })
-//     .on("receipt", (receipt) => {
-//       setContractAddress(receipt.contractAddress);
-//       setLoading(false);
-//       setContractCreated(true);
-//       console.log("Contract Address:", receipt.contractAddress); // Contains the new contract address
-//     })
-//     .then((newContractInstance) => {
-//       console.log(
-//         "Deployed Contract Instance:",
-//         newContractInstance.options.address
-//       );
-//     })
-//     .catch((error) => {
-//       console.error("Deployment Error:", error);
-//     });
-// };
-
 export const deployContract = async (
   web3,
   account,
@@ -107,9 +67,23 @@ export const deployContract = async (
   setContractAddress,
   setLoading,
   setContractCreated,
-  confirmationEmail // Add the email as a parameter
+  confirmationEmail
 ) => {
-  const libraryAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  // Set the library address based on the selected network
+  let libraryAddress;
+  const networkId = await web3.eth.net.getId();
+  const networkIdStr = networkId.toString();
+  const network = NETWORK_ID_TO_NAME[networkIdStr];
+  console.log("networkId: ", networkId);
+  console.log("networkIdStr: ", networkIdStr);
+  console.log("network: ", network);
+  if (network === "sepolia") {
+    libraryAddress = SEPOLIA_UTILS_ADDRESS;
+  } else if (network === "localhost") {
+    libraryAddress = LOCALHOST_UTILS_ADDRESS;
+  } else {
+    throw new Error("Unsupported network");
+  }
 
   // Replace the placeholder in the bytecode with the actual library address
   const linkedBytecode = crowdfundingBytecode.replace(
@@ -121,6 +95,22 @@ export const deployContract = async (
   console.log("arguments: ", args);
 
   try {
+    // Estimate gas limit
+    const estimatedGas = await contract
+      .deploy({
+        data: linkedBytecode,
+        arguments: args,
+      })
+      .estimateGas({ from: account });
+
+    // Fetch current base fee from latest block
+    const latestBlock = await web3.eth.getBlock("latest");
+    const baseFeePerGas = BigInt(latestBlock.baseFeePerGas);
+    const priorityFeePerGas = BigInt(web3.utils.toWei("2", "gwei")); // Example priority fee; adjust as needed
+
+    // Calculate maxFeePerGas
+    const maxFeePerGas = (baseFeePerGas + priorityFeePerGas).toString();
+
     const newContractInstance = await contract
       .deploy({
         data: linkedBytecode,
@@ -128,8 +118,9 @@ export const deployContract = async (
       })
       .send({
         from: account,
-        gas: 1500000,
-        maxFeePerGas: web3.utils.toWei("800", "gwei"), // Set max fee per gas higher
+        gas: estimatedGas,
+        maxFeePerGas: maxFeePerGas,
+        maxPriorityFeePerGas: priorityFeePerGas.toString(),
       });
 
     const contractAddress = newContractInstance.options.address;
@@ -140,9 +131,13 @@ export const deployContract = async (
     setLoading(false);
     setContractCreated(true);
 
+    // Send email with contract address disabled for now
+    console.log("email disabled for now...");
+    return;
+
     // Send the email with the contract address
     console.log("send email...");
-    debugger;
+
     const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {

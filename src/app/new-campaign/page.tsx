@@ -50,7 +50,7 @@ export default function Page() {
       setContractAddress,
       setLoading,
       setContractCreated,
-      confirmationEmail
+      confirmationEmail,
     );
   };
   return (
