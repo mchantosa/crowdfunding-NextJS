@@ -1,33 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
 import Campaign from "./Campaign";
-import Loading from "../../components/Loading";
-import { useTheme } from "@mui/material";
+import PageWrapper_Alert_NoWallet from "./PageWrapperMetamask";
+import { useState, createContext } from "react";
+
+const PageContext = createContext(null);
 
 export default function Page({ params }: { params: { id: string } }) {
-  const [isWalletInstalled, setIsWalletInstalled] = useState<boolean>(false); // -1 indicates loading
-
-  useEffect(() => {
-    const checkWallet = () => {
-      setIsWalletInstalled(!!window.ethereum);
-    };
-
-    checkWallet();
-  }, []);
-
-  if (!isWalletInstalled) {
-    // Wallet is not installed, show alert
-    return (
-      <Alert severity="error">
-        <AlertTitle>Wallet not available</AlertTitle>
-        <p>Please install a wallet to use this application</p>
-      </Alert>
-    );
-  }
-
-  // Wallet is installed, show Campaign component
-  return <Campaign />;
+  const [web3, setWeb3] = useState(undefined);
+  const [userAccount, setUserAccount] = useState<string>("");
+  return (
+    <PageContext.Provider
+      value={{ web3, userAccount, setWeb3, setUserAccount }}
+    >
+      <PageWrapper_Alert_NoWallet>
+        <Campaign></Campaign>
+      </PageWrapper_Alert_NoWallet>
+    </PageContext.Provider>
+  );
 }
+export { PageContext };

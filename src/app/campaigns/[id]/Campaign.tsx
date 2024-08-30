@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useContext } from "react";
+import { PageContext } from "./page";
 import { useParams } from "next/navigation";
 //components
 import CampaignInteractionSection from "./CampaignInteractionSection";
@@ -13,7 +14,6 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
-import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import TableFooter from "@mui/material/TableFooter";
@@ -21,48 +21,25 @@ import theme from "../../../theme/theme";
 import Typography from "@mui/material/Typography";
 //utils
 import {
-  getWeb3,
   getContract,
   convertWeiToEther,
   convertWeiToDollars,
 } from "../../../utils/web3/web3";
 import { formatDate, getDateFromSeconds } from "../../../utils/time";
-import Web3 from "web3";
 
 export default function Campaign() {
+  const { web3, userAccount } = useContext(PageContext);
   const contractAddress = useParams().id;
-  const [web3, setWeb3] = useState<Web3 | undefined>(undefined);
-  const [userAccount, setUserAccount] = useState<string>("");
   const [contract, setContract] = useState<any>(undefined);
   const [contractInfo, setContractInfo] = useState<any>(undefined);
   const [etherPrice, setEtherPrice] = useState<number | undefined>(undefined);
 
-  //get web3
-  useEffect(() => {
-    (async () => {
-      const _web3 = await getWeb3();
-      if (!_web3) return;
-      setWeb3(_web3);
-    })();
-  }, []);
-
-  //get user account
-  useEffect(() => {
-    if (!web3) return;
-    (async () => {
-      const accounts: string[] = await web3.eth.getAccounts();
-      setUserAccount(accounts[0]);
-    })();
-  }, [web3]);
-
   //get contract
   useEffect(() => {
     if (!web3) return;
-    (async () => {
-      const _contract = getContract(web3, contractAddress);
-      if (!_contract) return;
-      setContract(_contract);
-    })();
+    const _contract = getContract(web3, contractAddress);
+    console.log(_contract); //contract builder
+    setContract(_contract);
   }, [web3, contractAddress]);
 
   //get ether price (cached or fresh)
@@ -106,8 +83,8 @@ export default function Campaign() {
     }
   }, []);
 
-  async function loadCampaignData(contractAddress) {
-    if (!userAccount || !web3) return;
+  async function loadCampaignData() {
+    if (!userAccount || !web3 || !contract) return;
 
     try {
       const name: string = await contract.methods.name().call();
@@ -155,56 +132,9 @@ export default function Campaign() {
   //get contract info
   useEffect(() => {
     (async () => {
-      await loadCampaignData(contractAddress);
+      await loadCampaignData();
     })();
-  }, [web3, contractAddress, userAccount]);
-
-  useEffect(() => {
-    const handleAccountsChanged = (accounts) => {
-      if (accounts.length > 0) {
-        setUserAccount(accounts[0]);
-      } else {
-        setUserAccount(undefined); // Handle the case where no account is connected
-      }
-    };
-
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener(
-          "accountsChanged",
-          handleAccountsChanged
-        );
-      }
-    };
-  }, []);
-
-  async function connectWallet() {
-    try {
-      if (!web3) return; //Web3 not initialized
-      const accounts: string[] = await web3.eth.getAccounts();
-      if (accounts.length > 0) setUserAccount(accounts[0]);
-    } catch (error) {
-      console.error("Error fetching accounts:", error);
-    }
-  }
-
-  if (!userAccount) {
-    return (
-      <>
-        <Alert severity="info">
-          <AlertTitle>Website is not connected to Ethereum</AlertTitle>
-          <p>You must first connect your wallet</p>
-          <Button variant="contained" color="primary" onClick={connectWallet}>
-            Connect Wallet
-          </Button>
-        </Alert>
-      </>
-    );
-  }
+  }, [web3, userAccount, contract]);
 
   if (!contractInfo) {
     return (
