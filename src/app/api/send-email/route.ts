@@ -11,21 +11,32 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const { to, contractAddress, network } = await request.json();
+
+    if (!to || !contractAddress || !network) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await resend.emails.send({
       from: "Crowdfunding <no-reply@megan.chantosa.com>",
-      to: ["meganemmamoore@gmail.com"],
-      subject: "Hello world",
-      react: EmailTemplate({ firstName: "John" }),
+      to: [to],
+      subject: "Your Smart Contract Address",
+      react: EmailTemplate({ contractAddress, network }),
     });
 
     if (error) {
-      return Response.json({ error }, { status: 500 });
+      return new Response(JSON.stringify({ error }), { status: 500 });
     }
 
-    return Response.json(data);
+    return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
-    return Response.json({ error }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+    });
   }
 }

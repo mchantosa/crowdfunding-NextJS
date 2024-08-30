@@ -131,9 +131,9 @@ export const deployContract = async (
     setLoading(false);
     setContractCreated(true);
 
-    // Send email with contract address disabled for now
-    console.log("email disabled for now...");
-    return;
+    // DISABLE EMAILS
+    // console.log("email disabled for now...");
+    // return;
 
     // Send the email with the contract address
     console.log("send email...");
@@ -146,6 +146,7 @@ export const deployContract = async (
       body: JSON.stringify({
         to: confirmationEmail,
         contractAddress: contractAddress,
+        network: network, // Pass the network name here
       }),
     });
 
