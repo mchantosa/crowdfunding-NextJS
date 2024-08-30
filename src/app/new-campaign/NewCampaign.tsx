@@ -8,11 +8,10 @@ import { deployContract } from "../../utils/web3/web3";
 import Loading from "../components/Loading";
 import Message from "../components/Message";
 import theme from "../../theme/theme";
-import { PageContext } from "./page";
-import { useContext } from "react";
+import { useWeb3Context } from "../context/Web3Context";
 
 export default function Page() {
-  const { web3, userAccount } = useContext(PageContext);
+  const { web3, userAccount } = useWeb3Context(); 
   const [contractAddress, setContractAddress] = useState("");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -23,23 +22,6 @@ export default function Page() {
   const [contractCreated, setContractCreated] = useState(false);
 
   const router = useRouter();
-
-  // useEffect(() => {
-  //   (async () => {
-  //     const _web3 = await getWeb3();
-  //     if (!_web3) return;
-  //     setWeb3(_web3);
-  //   })();
-  // }, []);
-
-  //get user account
-  // useEffect(() => {
-  //   if (!web3) return;
-  //   (async () => {
-  //     const accounts: string[] = await web3.eth.getAccounts();
-  //     setUserAccount(accounts[0]);
-  //   })();
-  // }, [web3]);
 
   const handleClick = async () => {
     console.log({ name, duration, beneficiaryAddress, amount });

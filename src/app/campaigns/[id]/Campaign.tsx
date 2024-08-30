@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useContext } from "react";
-import { PageContext } from "./page";
+import { useWeb3Context } from "../../context/Web3Context";
 import { useParams } from "next/navigation";
 //components
 import CampaignInteractionSection from "./CampaignInteractionSection";
@@ -28,7 +28,7 @@ import {
 import { formatDate, getDateFromSeconds } from "../../../utils/time";
 
 export default function Campaign() {
-  const { web3, userAccount } = useContext(PageContext);
+  const { web3, userAccount } = useWeb3Context(); 
   const contractAddress = useParams().id;
   const [contract, setContract] = useState<any>(undefined);
   const [contractInfo, setContractInfo] = useState<any>(undefined);
