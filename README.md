@@ -57,6 +57,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to view the 
 
 To interact with the Ethereum blockchain, ensure you have MetaMask installed in your browser. The application will prompt you to connect your wallet upon accessing any page that requires blockchain interaction.
 
+## Configuring for a local Ethereum Network
+
+I have deployed the Utils library on the Sepolia network. To run this application on a local Hardhat network, you'll need to deploy the Utils library to your local network and configure its address in the web3.ts file. Instructions for setting up a local Ethereum network with Hardhat and deploying the Utils library can be found [here](https://github.com/mchantosa/smart-contract-generator).
+
 ## Environment Variables
 
 This project requires the following environment variables:
