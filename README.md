@@ -31,27 +31,33 @@ git clone https://github.com/mchantosa/crowdfunding-NextJS
 cd crowdfunding-NextJS
 
 npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
 ```
 
 Next, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+To run tests:
+
+```bash
+npx playwright test
+```
+
+To view test report:
+
+```bash
+npx playwright show-report
+```
+
+To run example tests in UI mode:
+
+```bash
+npx playwright test --ui
+```
 
 ## Web3 Setup
 
