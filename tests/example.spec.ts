@@ -4,7 +4,7 @@ test("has title", async ({ page }) => {
   await page.goto("http://localhost:3000/");
 
   // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Crowdfund on Blockchain/);
+  await expect(page).toHaveTitle(/Crowdfund on Blickchain/);
 });
 
 test("get started link", async ({ page }) => {
