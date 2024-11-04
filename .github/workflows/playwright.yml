@@ -32,9 +32,6 @@ jobs:
 
       - name: Start server
         run: npm run start &
-        env:
-          CI: true
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }} # Pass the API key as an environment variable
 
       - name: Wait for server to be ready
         run: |
