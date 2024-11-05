@@ -38,28 +38,28 @@ jobs:
 
       # Conditional steps for Playwright E2E Tests on 'main' branch only
       - name: Install Playwright Browsers
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/development'
         run: npx playwright install --with-deps
 
       - name: Build Next.js application
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/development'
         run: npm run build
 
       - name: Start server
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/development'
         run: npm run start &
 
       - name: Wait for server to be ready
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/development'
         run: |
           timeout 30 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 1; done'
 
       - name: Run Playwright Tests
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/development'
         run: npx playwright test
 
       - name: Upload Playwright Report
-        if: ${{ github.ref == 'refs/heads/main' && always() }}
+        if: ${{ github.ref == 'refs/heads/development' && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
