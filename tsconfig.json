@@ -20,6 +20,6 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/theme/theme.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/theme/theme.ts", "tests/utils/time.test.jsx", "tests/mocks/web3.js"],
   "exclude": ["node_modules"]
 }

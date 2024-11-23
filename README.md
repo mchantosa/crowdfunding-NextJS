@@ -27,9 +27,7 @@ First, clone the repository and install the dependencies:
 
 ```bash
 git clone https://github.com/mchantosa/crowdfunding-NextJS
-
 cd crowdfunding-NextJS
-
 npm install
 ```
 
@@ -44,19 +42,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to view the 
 To run tests:
 
 ```bash
-npx playwright test
+npm run test    #unit
+npx playwright test #e2e
 ```
 
-To view test report:
+Additional Playwright tools:
 
 ```bash
-npx playwright show-report
-```
-
-To run example tests in UI mode:
-
-```bash
-npx playwright test --ui
+npx playwright show-report  #view test report
+npx playwright test --ui    #run example tests in UI mode
 ```
 
 ## Web3 Setup
